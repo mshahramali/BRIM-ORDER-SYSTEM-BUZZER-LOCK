@@ -1,0 +1,24 @@
+{
+  "name": "Brim Burgers — Order & Track",
+  "short_name": "Brim Burgers",
+  "description": "Scan, order, and get buzzed when it's ready — no app download needed.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#1c1410",
+  "theme_color": "#1c1410",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

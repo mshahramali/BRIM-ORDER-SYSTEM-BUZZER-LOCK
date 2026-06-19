@@ -1,0 +1,1003 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Brim Burgers — AR Menu & Order</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#1c1410">
+
+<style>
+  :root{
+    --char:        #1c1410;
+    --cream:       #fbf3e7;
+    --paper:       #f4e9d8;
+    --ember:       #d9542f;
+    --ember-dark:  #b9401f;
+    --smoke:       #6b5d52;
+    --line:        #e4d4bd;
+    --gold:        #c9952c;
+    --ok:          #3f7d4f;
+
+    --display: "Anton", "Arial Narrow", sans-serif;
+    --body:    "Source Sans 3", "Segoe UI", sans-serif;
+    --mono:    "JetBrains Mono", "Courier New", monospace;
+  }
+
+  *{ box-sizing:border-box; margin:0; padding:0; }
+  html,body{
+    background:var(--cream);
+    color:var(--char);
+    font-family:var(--body);
+    -webkit-tap-highlight-color: transparent;
+  }
+  body{ padding-bottom:90px; }
+
+  /* ---------- TOP BAR ---------- */
+  header.topbar{
+    position:sticky; top:0; z-index:50;
+    background:var(--char); color:var(--cream);
+    padding:14px 16px;
+    display:flex; align-items:center; justify-content:space-between;
+    box-shadow:0 2px 12px rgba(0,0,0,0.15);
+  }
+  .brand{
+    font-family:var(--display); letter-spacing:1px;
+    font-size:22px; text-transform:uppercase;
+    display:flex; align-items:center; gap:8px;
+  }
+  .brand .flame{ color:var(--ember); }
+  .table-pill{
+    font-family:var(--mono); font-size:13px;
+    background:var(--ember); color:var(--cream);
+    padding:6px 12px; border-radius:999px;
+    letter-spacing:0.5px; white-space:nowrap;
+  }
+
+  /* ---------- AR HERO ---------- */
+  .ar-hero{
+    background:linear-gradient(180deg, var(--char) 0%, #2a1f17 100%);
+    color:var(--cream);
+    padding:18px 16px 24px;
+    text-align:center;
+  }
+  .ar-hero .eyebrow{
+    font-family:var(--mono); font-size:11px; letter-spacing:3px;
+    color:var(--gold); text-transform:uppercase; margin-bottom:6px;
+  }
+  .ar-hero h1{
+    font-family:var(--display); font-size:28px; text-transform:uppercase;
+    letter-spacing:1px; margin-bottom:14px;
+  }
+  model-viewer{
+    width:100%; height:280px; border-radius:14px;
+    background:#3a2c20;
+  }
+  .ar-caption{
+    margin-top:10px; font-size:13px; color:#cdbfb2; line-height:1.5;
+  }
+  .ar-caption b{ color:var(--cream); }
+
+  /* ---------- NAV CHIPS ---------- */
+  nav.cats{
+    display:flex; gap:8px; overflow-x:auto;
+    padding:14px 16px; background:var(--cream);
+    position:sticky; top:60px; z-index:40;
+    border-bottom:1px solid var(--line);
+    -ms-overflow-style:none; scrollbar-width:none;
+  }
+  nav.cats::-webkit-scrollbar{ display:none; }
+  nav.cats button{
+    flex:0 0 auto; font-family:var(--body); font-weight:600;
+    font-size:13px; padding:8px 16px; border-radius:999px;
+    border:1px solid var(--line); background:var(--paper);
+    color:var(--smoke); cursor:pointer; white-space:nowrap;
+    transition:all .15s ease;
+  }
+  nav.cats button.active{
+    background:var(--ember); color:var(--cream); border-color:var(--ember);
+  }
+
+  /* ---------- SECTIONS ---------- */
+  main{ padding:8px 16px 24px; }
+  section.cat{ padding-top:22px; }
+  section.cat h2{
+    font-family:var(--display); font-size:22px; text-transform:uppercase;
+    letter-spacing:0.5px; margin-bottom:4px;
+  }
+  .tax-note{
+    font-size:11px; color:var(--smoke); margin-bottom:14px;
+    font-family:var(--mono);
+  }
+
+  .item-card{
+    display:flex; gap:12px; align-items:flex-start;
+    background:var(--paper); border:1px solid var(--line);
+    border-radius:12px; padding:12px; margin-bottom:10px;
+  }
+  .item-emoji{
+    font-size:28px; line-height:1; flex:0 0 auto;
+    width:44px; height:44px; display:flex; align-items:center; justify-content:center;
+    background:var(--cream); border-radius:10px;
+  }
+  .item-info{ flex:1; min-width:0; }
+  .item-name{ font-weight:700; font-size:15.5px; margin-bottom:2px; }
+  .item-name i{ color:var(--ember); font-style:normal; }
+  .item-prices{
+    display:flex; gap:6px; flex-wrap:wrap; margin-top:8px;
+  }
+  .price-btn{
+    font-family:var(--mono); font-size:12.5px; font-weight:600;
+    border:1px solid var(--line); background:var(--cream);
+    color:var(--char); padding:6px 10px; border-radius:8px;
+    cursor:pointer; display:flex; flex-direction:column; align-items:center;
+    gap:2px; min-width:62px; transition:all .12s ease;
+  }
+  .price-btn .lbl{ font-size:10px; color:var(--smoke); text-transform:uppercase; letter-spacing:0.5px; }
+  .price-btn:active{ transform:scale(0.96); }
+  .price-btn.added{ background:var(--ember); color:var(--cream); border-color:var(--ember); }
+  .price-btn.added .lbl{ color:#fde6dd; }
+
+  /* ---------- AR JUMP BUTTON ---------- */
+  .view-ar-btn{
+    margin-top:8px; font-family:var(--mono); font-size:11px;
+    color:var(--gold); background:none; border:none; cursor:pointer;
+    text-decoration:underline; padding:0;
+  }
+
+  /* ---------- QR CARD ---------- */
+  .qr-card{
+    margin-top:30px; background:var(--char); color:var(--cream);
+    border-radius:14px; padding:20px; text-align:center;
+  }
+  .qr-card h3{
+    font-family:var(--display); font-size:18px; text-transform:uppercase;
+    margin-bottom:6px; letter-spacing:1px;
+  }
+  .qr-card p{ font-size:13px; color:#cdbfb2; margin-bottom:14px; }
+  .qr-card img{ width:160px; height:160px; border-radius:8px; background:#fff; padding:8px; }
+
+  /* ---------- CART BAR ---------- */
+  .cart-bar{
+    position:fixed; bottom:0; left:0; right:0; z-index:60;
+    background:var(--ember); color:var(--cream);
+    display:flex; align-items:center; justify-content:space-between;
+    padding:14px 18px; box-shadow:0 -4px 20px rgba(0,0,0,0.2);
+    transform:translateY(110%); transition:transform .25s ease;
+  }
+  .cart-bar.visible{ transform:translateY(0); }
+  .cart-bar .info{ font-family:var(--body); font-weight:700; font-size:15px; }
+  .cart-bar .info span{ font-family:var(--mono); font-weight:400; font-size:12px; display:block; color:#fde6dd; }
+  .cart-bar button{
+    font-family:var(--display); text-transform:uppercase; letter-spacing:1px;
+    background:var(--char); color:var(--cream); border:none;
+    padding:10px 20px; border-radius:8px; font-size:14px; cursor:pointer;
+  }
+
+  /* ---------- CART DRAWER ---------- */
+  .drawer-backdrop{
+    position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:70;
+    opacity:0; pointer-events:none; transition:opacity .2s ease;
+  }
+  .drawer-backdrop.open{ opacity:1; pointer-events:auto; }
+  .drawer{
+    position:fixed; left:0; right:0; bottom:0; z-index:80;
+    background:var(--cream); border-radius:18px 18px 0 0;
+    max-height:82vh; display:flex; flex-direction:column;
+    transform:translateY(100%); transition:transform .28s ease;
+  }
+  .drawer.open{ transform:translateY(0); }
+  .drawer-handle{
+    width:40px; height:4px; background:var(--line); border-radius:99px;
+    margin:10px auto 4px;
+  }
+  .drawer-head{
+    padding:8px 18px 14px; border-bottom:1px solid var(--line);
+    display:flex; justify-content:space-between; align-items:center;
+  }
+  .drawer-head h3{ font-family:var(--display); font-size:20px; text-transform:uppercase; }
+  .drawer-head button{
+    background:none; border:none; font-size:22px; color:var(--smoke); cursor:pointer;
+  }
+  .drawer-body{ overflow-y:auto; padding:10px 18px; flex:1; }
+  .cart-line{
+    display:flex; align-items:center; justify-content:space-between;
+    padding:10px 0; border-bottom:1px solid var(--line); gap:10px;
+  }
+  .cart-line .ci-name{ font-weight:700; font-size:14px; }
+  .cart-line .ci-variant{ font-family:var(--mono); font-size:11px; color:var(--smoke); }
+  .qty-stepper{ display:flex; align-items:center; gap:8px; }
+  .qty-stepper button{
+    width:28px; height:28px; border-radius:8px; border:1px solid var(--line);
+    background:var(--paper); font-size:16px; cursor:pointer; color:var(--char);
+  }
+  .qty-stepper .qty{ font-family:var(--mono); font-weight:700; min-width:18px; text-align:center; }
+  .ci-price{ font-family:var(--mono); font-size:13px; font-weight:700; min-width:64px; text-align:right; }
+
+  .drawer-foot{
+    padding:14px 18px; border-top:1px solid var(--line);
+    background:var(--cream);
+  }
+  .total-row{
+    display:flex; justify-content:space-between; align-items:baseline;
+    margin-bottom:12px; font-family:var(--mono);
+  }
+  .total-row .label{ font-size:13px; color:var(--smoke); text-transform:uppercase; letter-spacing:1px; }
+  .total-row .amount{ font-size:22px; font-weight:700; }
+
+  .send-btn{
+    width:100%; font-family:var(--display); text-transform:uppercase;
+    letter-spacing:1px; font-size:17px; padding:15px; border:none;
+    border-radius:10px; background:var(--ember); color:var(--cream);
+    cursor:pointer; display:flex; align-items:center; justify-content:center; gap:10px;
+  }
+  .send-btn:disabled{ opacity:0.5; }
+  .send-sub{ text-align:center; font-size:11px; color:var(--smoke); margin-top:8px; font-family:var(--mono); }
+
+  .empty-cart{ text-align:center; padding:40px 0; color:var(--smoke); font-size:14px; }
+
+  /* ---------- ORDER STATUS OVERLAY ---------- */
+  .status-overlay{
+    position:fixed; inset:0; z-index:100; background:var(--char);
+    color:var(--cream); display:flex; flex-direction:column; align-items:center;
+    justify-content:center; text-align:center; padding:30px;
+    transform:translateY(100%); transition:transform .3s ease;
+  }
+  .status-overlay.open{ transform:translateY(0); }
+  .status-overlay .pulse-ring{
+    width:120px; height:120px; border-radius:50%;
+    border:3px solid var(--ember); display:flex; align-items:center;
+    justify-content:center; font-size:48px; margin-bottom:24px;
+    animation:pulse 2s infinite ease-in-out;
+  }
+  @keyframes pulse{
+    0%,100%{ box-shadow:0 0 0 0 rgba(217,84,47,0.4); }
+    50%{ box-shadow:0 0 0 18px rgba(217,84,47,0); }
+  }
+  .status-overlay .eyebrow{
+    font-family:var(--mono); font-size:11px; letter-spacing:3px;
+    color:var(--gold); text-transform:uppercase; margin-bottom:10px;
+  }
+  .status-overlay h2{
+    font-family:var(--display); font-size:30px; text-transform:uppercase;
+    letter-spacing:1px; margin-bottom:12px;
+  }
+  .status-overlay p{ font-size:14px; color:#cdbfb2; max-width:300px; line-height:1.6; }
+  .status-overlay .order-id{
+    font-family:var(--mono); font-size:11px; color:var(--smoke); margin-top:18px;
+  }
+  .status-overlay .close-status{
+    margin-top:28px; background:none; border:1px solid var(--smoke);
+    color:var(--cream); padding:10px 24px; border-radius:8px; font-family:var(--body);
+    font-size:13px; cursor:pointer;
+  }
+  .status-overlay.ready .pulse-ring{
+    border-color:var(--ok); animation:buzzring .6s infinite ease-in-out;
+  }
+  @keyframes buzzring{
+    0%,100%{ transform:scale(1) rotate(0deg); }
+    25%{ transform:scale(1.08) rotate(-4deg); }
+    75%{ transform:scale(1.08) rotate(4deg); }
+  }
+  .status-overlay.ready h2{ color:var(--ok); }
+
+  /* status step list */
+  .steps{ display:flex; gap:18px; margin-top:24px; }
+  .step{ display:flex; flex-direction:column; align-items:center; gap:6px; font-size:11px; color:var(--smoke); font-family:var(--mono); text-transform:uppercase; }
+  .step .dot{ width:10px; height:10px; border-radius:50%; background:var(--smoke); }
+  .step.active .dot{ background:var(--ember); }
+  .step.active{ color:var(--cream); }
+  .step.done .dot{ background:var(--ok); }
+  .step.done{ color:var(--ok); }
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand"><span class="flame">✦</span> BRIM BURGERS</div>
+  <div class="table-pill" id="tablePill">TABLE —</div>
+</header>
+
+<div class="ar-hero">
+  <div class="eyebrow">AR Menu · Pakistan</div>
+  <h1>See it. Place it. Order it.</h1>
+  <model-viewer id="arViewer"
+    src="https://modelviewer.dev/shared-assets/models/Astronaut.glb"
+    ar ar-modes="webxr scene-viewer quick-look"
+    camera-controls auto-rotate
+    shadow-intensity="1"
+    alt="Brim Classic burger AR model">
+  </model-viewer>
+  <div class="ar-caption">
+    Now viewing: <b id="arItemName">Brim Classic</b><br>
+    Tap any item below to load it here, then hit the AR icon to place it on your table.
+  </div>
+</div>
+
+<nav class="cats" id="catNav">
+  <button class="active" data-cat="burgers">🍔 Burgers</button>
+  <button data-cat="hotdogs">🌭 Hot Dogs</button>
+  <button data-cat="fries">🍟 Loaded Fries</button>
+  <button data-cat="brimwich">🥪 Brimwich</button>
+  <button data-cat="sips">🥤 Sips & Scoops</button>
+</nav>
+
+<main id="menuMain">
+
+  <!-- BURGERS -->
+  <section class="cat" id="cat-burgers">
+    <h2>Smash Burgers</h2>
+    <div class="tax-note">⊞ Prices are exclusive of taxes</div>
+
+    <div class="item-card" data-model="https://modelviewer.dev/shared-assets/models/Astronaut.glb">
+      <div class="item-emoji">🏆</div>
+      <div class="item-info">
+        <div class="item-name">Brim <i>Classic</i></div>
+        <div class="item-prices">
+          <button class="price-btn" data-name="Brim Classic" data-variant="Single" data-price="890"><span>Rs 890</span><span class="lbl">Single</span></button>
+          <button class="price-btn" data-name="Brim Classic" data-variant="Double" data-price="1090"><span>Rs 1090</span><span class="lbl">Double</span></button>
+          <button class="price-btn" data-name="Brim Classic" data-variant="Triple" data-price="1290"><span>Rs 1290</span><span class="lbl">Triple</span></button>
+        </div>
+        <button class="view-ar-btn">View in AR ↑</button>
+      </div>
+    </div>
+
+    <div class="item-card" data-model="https://modelviewer.dev/shared-assets/models/Astronaut.glb">
+      <div class="item-emoji">🔥</div>
+      <div class="item-info">
+        <div class="item-name">Double <i>Stack</i></div>
+        <div class="item-prices">
+          <button class="price-btn" data-name="Double Stack" data-variant="Single" data-price="990"><span>Rs 990</span><span class="lbl">Single</span></button>
+          <button class="price-btn" data-name="Double Stack" data-variant="Double" data-price="1190"><span>Rs 1190</span><span class="lbl">Double</span></button>
+          <button class="price-btn" data-name="Double Stack" data-variant="Triple" data-price="1390"><span>Rs 1390</span><span class="lbl">Triple</span></button>
+        </div>
+        <button class="view-ar-btn">View in AR ↑</button>
+      </div>
+    </div>
+
+    <div class="item-card" data-model="https://modelviewer.dev/shared-assets/models/Astronaut.glb">
+      <div class="item-emoji">🍄</div>
+      <div class="item-info">
+        <div class="item-name">Mushroom <i>Swiss</i></div>
+        <div class="item-prices">
+          <button class="price-btn" data-name="Mushroom Swiss" data-variant="Single" data-price="990"><span>Rs 990</span><span class="lbl">Single</span></button>
+          <button class="price-btn" data-name="Mushroom Swiss" data-variant="Double" data-price="1190"><span>Rs 1190</span><span class="lbl">Double</span></button>
+          <button class="price-btn" data-name="Mushroom Swiss" data-variant="Triple" data-price="1390"><span>Rs 1390</span><span class="lbl">Triple</span></button>
+        </div>
+        <button class="view-ar-btn">View in AR ↑</button>
+      </div>
+    </div>
+
+    <div class="item-card" data-model="https://modelviewer.dev/shared-assets/models/Astronaut.glb">
+      <div class="item-emoji">👑</div>
+      <div class="item-info">
+        <div class="item-name">Brim <i>Special</i></div>
+        <div class="item-prices">
+          <button class="price-btn" data-name="Brim Special" data-variant="Single" data-price="1090"><span>Rs 1090</span><span class="lbl">Single</span></button>
+          <button class="price-btn" data-name="Brim Special" data-variant="Double" data-price="1290"><span>Rs 1290</span><span class="lbl">Double</span></button>
+          <button class="price-btn" data-name="Brim Special" data-variant="Triple" data-price="1490"><span>Rs 1490</span><span class="lbl">Triple</span></button>
+        </div>
+        <button class="view-ar-btn">View in AR ↑</button>
+      </div>
+    </div>
+
+    <div class="item-card" data-model="https://modelviewer.dev/shared-assets/models/Astronaut.glb">
+      <div class="item-emoji">🥩</div>
+      <div class="item-info">
+        <div class="item-name">BBQ <i>Smash</i></div>
+        <div class="item-prices">
+          <button class="price-btn" data-name="BBQ Smash" data-variant="Single" data-price="990"><span>Rs 990</span><span class="lbl">Single</span></button>
+          <button class="price-btn" data-name="BBQ Smash" data-variant="Double" data-price="1190"><span>Rs 1190</span><span class="lbl">Double</span></button>
+          <button class="price-btn" data-name="BBQ Smash" data-variant="Triple" data-price="1390"><span>Rs 1390</span><span class="lbl">Triple</span></button>
+        </div>
+        <button class="view-ar-btn">View in AR ↑</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- HOT DOGS -->
+  <section class="cat" id="cat-hotdogs" style="display:none">
+    <h2>Hot Dogs</h2>
+    <div class="tax-note">⊞ Prices are exclusive of taxes</div>
+
+    <div class="item-card" data-model="https://modelviewer.dev/shared-assets/models/Astronaut.glb">
+      <div class="item-emoji">🌭</div>
+      <div class="item-info">
+        <div class="item-name">Classic <i>Hot Dog</i></div>
+        <div class="item-prices">
+          <button class="price-btn" data-name="Classic Hot Dog" data-variant="" data-price="690"><span>Rs 690</span><span class="lbl">Reg</span></button>
+        </div>
+        <button class="view-ar-btn">View in AR ↑</button>
+      </div>
+    </div>
+
+    <div class="item-card" data-model="https://modelviewer.dev/shared-assets/models/Astronaut.glb">
+      <div class="item-emoji">🧀</div>
+      <div class="item-info">
+        <div class="item-name">Chilli <i>Cheese Dog</i></div>
+        <div class="item-prices">
+          <button class="price-btn" data-name="Chilli Cheese Dog" data-variant="" data-price="790"><span>Rs 790</span><span class="lbl">Reg</span></button>
+        </div>
+        <button class="view-ar-btn">View in AR ↑</button>
+      </div>
+    </div>
+
+    <div class="item-card" data-model="https://modelviewer.dev/shared-assets/models/Astronaut.glb">
+      <div class="item-emoji">🧅</div>
+      <div class="item-info">
+        <div class="item-name">Crispy <i>Onion Dog</i></div>
+        <div class="item-prices">
+          <button class="price-btn" data-name="Crispy Onion Dog" data-variant="" data-price="750"><span>Rs 750</span><span class="lbl">Reg</span></button>
+        </div>
+        <button class="view-ar-btn">View in AR ↑</button>
+      </div>
+    </div>
+
+    <div class="item-card" data-model="https://modelviewer.dev/shared-assets/models/Astronaut.glb">
+      <div class="item-emoji">👑</div>
+      <div class="item-info">
+        <div class="item-name">Brim Dog <i>Special</i></div>
+        <div class="item-prices">
+          <button class="price-btn" data-name="Brim Dog Special" data-variant="" data-price="890"><span>Rs 890</span><span class="lbl">Reg</span></button>
+        </div>
+        <button class="view-ar-btn">View in AR ↑</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- LOADED FRIES -->
+  <section class="cat" id="cat-fries" style="display:none">
+    <h2>Loaded Fries</h2>
+    <div class="tax-note">⊞ Prices are exclusive of taxes</div>
+
+    <div class="item-card" data-model="https://modelviewer.dev/shared-assets/models/Astronaut.glb">
+      <div class="item-emoji">🍟</div>
+      <div class="item-info">
+        <div class="item-name">Classic <i>Loaded Fries</i></div>
+        <div class="item-prices">
+          <button class="price-btn" data-name="Classic Loaded Fries" data-variant="" data-price="590"><span>Rs 590</span><span class="lbl">Reg</span></button>
+        </div>
+        <button class="view-ar-btn">View in AR ↑</button>
+      </div>
+    </div>
+
+    <div class="item-card" data-model="https://modelviewer.dev/shared-assets/models/Astronaut.glb">
+      <div class="item-emoji">🧀</div>
+      <div class="item-info">
+        <div class="item-name">Cheese <i>Fries</i></div>
+        <div class="item-prices">
+          <button class="price-btn" data-name="Cheese Fries" data-variant="" data-price="650"><span>Rs 650</span><span class="lbl">Reg</span></button>
+        </div>
+        <button class="view-ar-btn">View in AR ↑</button>
+      </div>
+    </div>
+
+    <div class="item-card" data-model="https://modelviewer.dev/shared-assets/models/Astronaut.glb">
+      <div class="item-emoji">🥩</div>
+      <div class="item-info">
+        <div class="item-name">BBQ Pulled <i>Fries</i></div>
+        <div class="item-prices">
+          <button class="price-btn" data-name="BBQ Pulled Fries" data-variant="" data-price="750"><span>Rs 750</span><span class="lbl">Reg</span></button>
+        </div>
+        <button class="view-ar-btn">View in AR ↑</button>
+      </div>
+    </div>
+
+    <div class="item-card" data-model="https://modelviewer.dev/shared-assets/models/Astronaut.glb">
+      <div class="item-emoji">🔥</div>
+      <div class="item-info">
+        <div class="item-name">Brim Loaded <i>Special</i></div>
+        <div class="item-prices">
+          <button class="price-btn" data-name="Brim Loaded Special" data-variant="" data-price="850"><span>Rs 850</span><span class="lbl">Reg</span></button>
+        </div>
+        <button class="view-ar-btn">View in AR ↑</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- BRIMWICH -->
+  <section class="cat" id="cat-brimwich" style="display:none">
+    <h2>Brimwich</h2>
+    <div class="tax-note">⊞ Prices are exclusive of taxes</div>
+
+    <div class="item-card" data-model="https://modelviewer.dev/shared-assets/models/Astronaut.glb">
+      <div class="item-emoji">🍗</div>
+      <div class="item-info">
+        <div class="item-name">Crispy Chicken <i>Brimwich</i></div>
+        <div class="item-prices">
+          <button class="price-btn" data-name="Crispy Chicken Brimwich" data-variant="" data-price="790"><span>Rs 790</span><span class="lbl">Reg</span></button>
+        </div>
+        <button class="view-ar-btn">View in AR ↑</button>
+      </div>
+    </div>
+
+    <div class="item-card" data-model="https://modelviewer.dev/shared-assets/models/Astronaut.glb">
+      <div class="item-emoji">🥩</div>
+      <div class="item-info">
+        <div class="item-name">Beef <i>Brimwich</i></div>
+        <div class="item-prices">
+          <button class="price-btn" data-name="Beef Brimwich" data-variant="" data-price="890"><span>Rs 890</span><span class="lbl">Reg</span></button>
+        </div>
+        <button class="view-ar-btn">View in AR ↑</button>
+      </div>
+    </div>
+
+    <div class="item-card" data-model="https://modelviewer.dev/shared-assets/models/Astronaut.glb">
+      <div class="item-emoji">🌶️</div>
+      <div class="item-info">
+        <div class="item-name">Spicy <i>Brimwich</i></div>
+        <div class="item-prices">
+          <button class="price-btn" data-name="Spicy Brimwich" data-variant="" data-price="850"><span>Rs 850</span><span class="lbl">Reg</span></button>
+        </div>
+        <button class="view-ar-btn">View in AR ↑</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- SIPS & SCOOPS -->
+  <section class="cat" id="cat-sips" style="display:none">
+    <h2>Sips & Scoops</h2>
+    <div class="tax-note">⊞ Prices are exclusive of taxes</div>
+
+    <h3 style="font-family:var(--mono); font-size:12px; text-transform:uppercase; letter-spacing:2px; color:var(--smoke); margin:14px 0 8px;">Shakes</h3>
+
+    <div class="item-card" data-model="https://modelviewer.dev/shared-assets/models/Astronaut.glb">
+      <div class="item-emoji">🍦</div>
+      <div class="item-info">
+        <div class="item-name">Vanilla <i>Shake</i></div>
+        <div class="item-prices">
+          <button class="price-btn" data-name="Vanilla Shake" data-variant="" data-price="550"><span>Rs 550</span><span class="lbl">Reg</span></button>
+        </div>
+        <button class="view-ar-btn">View in AR ↑</button>
+      </div>
+    </div>
+
+    <div class="item-card" data-model="https://modelviewer.dev/shared-assets/models/Astronaut.glb">
+      <div class="item-emoji">🍫</div>
+      <div class="item-info">
+        <div class="item-name">Chocolate <i>Shake</i></div>
+        <div class="item-prices">
+          <button class="price-btn" data-name="Chocolate Shake" data-variant="" data-price="580"><span>Rs 580</span><span class="lbl">Reg</span></button>
+        </div>
+        <button class="view-ar-btn">View in AR ↑</button>
+      </div>
+    </div>
+
+    <div class="item-card" data-model="https://modelviewer.dev/shared-assets/models/Astronaut.glb">
+      <div class="item-emoji">🍓</div>
+      <div class="item-info">
+        <div class="item-name">Strawberry <i>Shake</i></div>
+        <div class="item-prices">
+          <button class="price-btn" data-name="Strawberry Shake" data-variant="" data-price="580"><span>Rs 580</span><span class="lbl">Reg</span></button>
+        </div>
+        <button class="view-ar-btn">View in AR ↑</button>
+      </div>
+    </div>
+
+    <div class="item-card" data-model="https://modelviewer.dev/shared-assets/models/Astronaut.glb">
+      <div class="item-emoji">🔥</div>
+      <div class="item-info">
+        <div class="item-name">Lotus <i>Shake</i></div>
+        <div class="item-prices">
+          <button class="price-btn" data-name="Lotus Shake" data-variant="" data-price="620"><span>Rs 620</span><span class="lbl">Reg</span></button>
+        </div>
+        <button class="view-ar-btn">View in AR ↑</button>
+      </div>
+    </div>
+
+    <h3 style="font-family:var(--mono); font-size:12px; text-transform:uppercase; letter-spacing:2px; color:var(--smoke); margin:18px 0 8px;">Drinks</h3>
+
+    <div class="item-card" data-model="https://modelviewer.dev/shared-assets/models/Astronaut.glb">
+      <div class="item-emoji">🍋</div>
+      <div class="item-info">
+        <div class="item-name">Lemonade</div>
+        <div class="item-prices">
+          <button class="price-btn" data-name="Lemonade" data-variant="Regular" data-price="220"><span>Rs 220</span><span class="lbl">Reg</span></button>
+          <button class="price-btn" data-name="Lemonade" data-variant="Large" data-price="300"><span>Rs 300</span><span class="lbl">Large</span></button>
+        </div>
+        <button class="view-ar-btn">View in AR ↑</button>
+      </div>
+    </div>
+
+    <div class="item-card" data-model="https://modelviewer.dev/shared-assets/models/Astronaut.glb">
+      <div class="item-emoji">🍑</div>
+      <div class="item-info">
+        <div class="item-name">Peach Tea</div>
+        <div class="item-prices">
+          <button class="price-btn" data-name="Peach Tea" data-variant="Regular" data-price="250"><span>Rs 250</span><span class="lbl">Reg</span></button>
+          <button class="price-btn" data-name="Peach Tea" data-variant="Large" data-price="330"><span>Rs 330</span><span class="lbl">Large</span></button>
+        </div>
+        <button class="view-ar-btn">View in AR ↑</button>
+      </div>
+    </div>
+
+    <div class="item-card" data-model="https://modelviewer.dev/shared-assets/models/Astronaut.glb">
+      <div class="item-emoji">🍊</div>
+      <div class="item-info">
+        <div class="item-name">Fruit Punch</div>
+        <div class="item-prices">
+          <button class="price-btn" data-name="Fruit Punch" data-variant="Regular" data-price="280"><span>Rs 280</span><span class="lbl">Reg</span></button>
+          <button class="price-btn" data-name="Fruit Punch" data-variant="Large" data-price="360"><span>Rs 360</span><span class="lbl">Large</span></button>
+        </div>
+        <button class="view-ar-btn">View in AR ↑</button>
+      </div>
+    </div>
+
+    <div class="item-card" data-model="https://modelviewer.dev/shared-assets/models/Astronaut.glb">
+      <div class="item-emoji">🥤</div>
+      <div class="item-info">
+        <div class="item-name">Soft Drink</div>
+        <div class="item-prices">
+          <button class="price-btn" data-name="Soft Drink" data-variant="Regular" data-price="120"><span>Rs 120</span><span class="lbl">Reg</span></button>
+          <button class="price-btn" data-name="Soft Drink" data-variant="Large" data-price="170"><span>Rs 170</span><span class="lbl">Large</span></button>
+        </div>
+        <button class="view-ar-btn">View in AR ↑</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- QR CARD -->
+  <div class="qr-card">
+    <h3>Scan to Reorder</h3>
+    <p>Each table has its own QR code. Scan it any time to reopen this menu with your table already set.</p>
+    <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=https://mshahramali.github.io/BRIM-ORDER-SYSTEM-BUZZER-LOCK/?table=07" alt="Table QR code">
+  </div>
+
+</main>
+
+<!-- CART BAR -->
+<div class="cart-bar" id="cartBar">
+  <div class="info">
+    <span id="cartCount">0 items</span>
+    <span id="cartTotal">Rs 0</span>
+  </div>
+  <button id="openCartBtn">View Order</button>
+</div>
+
+<!-- CART DRAWER -->
+<div class="drawer-backdrop" id="drawerBackdrop"></div>
+<div class="drawer" id="cartDrawer">
+  <div class="drawer-handle"></div>
+  <div class="drawer-head">
+    <h3>Your Order</h3>
+    <button id="closeDrawerBtn">✕</button>
+  </div>
+  <div class="drawer-body" id="drawerBody">
+    <div class="empty-cart">Your cart is empty.<br>Tap items above to add them.</div>
+  </div>
+  <div class="drawer-foot">
+    <div class="total-row">
+      <span class="label">Total (excl. tax)</span>
+      <span class="amount" id="drawerTotal">Rs 0</span>
+    </div>
+    <button class="send-btn" id="sendOrderBtn" disabled>
+      📲 Send Order to Kitchen
+    </button>
+    <div class="send-sub">Sends directly to Table <span id="footTable">—</span> · No app needed</div>
+  </div>
+</div>
+
+<!-- STATUS OVERLAY -->
+<div class="status-overlay" id="statusOverlay">
+  <div class="eyebrow">Order Placed</div>
+  <div class="pulse-ring" id="pulseIcon">👨‍🍳</div>
+  <h2 id="statusTitle">Sent to the kitchen</h2>
+  <p id="statusText">Your order for Table <b id="statusTable">07</b> has been received. We'll buzz your phone the moment it's ready.</p>
+  <div class="steps">
+    <div class="step active" id="step-received"><div class="dot"></div>Received</div>
+    <div class="step" id="step-preparing"><div class="dot"></div>Preparing</div>
+    <div class="step" id="step-ready"><div class="dot"></div>Ready</div>
+  </div>
+  <div class="order-id" id="orderIdLabel"></div>
+  <button class="close-status" id="closeStatusBtn">Keep browsing menu</button>
+</div>
+
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-messaging-compat.js"></script>
+<script src="firebase-config.js"></script>
+
+<!-- model-viewer for AR -->
+<script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
+
+<script>
+  const BRIM_WHATSAPP = "923300353329"; // +92 330 0353329, no '+' or leading zero for wa.me
+
+  // ---------- TABLE NUMBER FROM QR ----------
+  const params = new URLSearchParams(window.location.search);
+  const tableNumber = params.get('table') || '—';
+  document.getElementById('tablePill').textContent = 'TABLE ' + tableNumber;
+  document.getElementById('footTable').textContent = tableNumber;
+  document.getElementById('statusTable').textContent = tableNumber;
+
+  // ---------- CATEGORY NAV ----------
+  document.querySelectorAll('#catNav button').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('#catNav button').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      document.querySelectorAll('section.cat').forEach(s => s.style.display = 'none');
+      document.getElementById('cat-' + btn.dataset.cat).style.display = '';
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+  });
+
+  // ---------- AR VIEW BUTTON ----------
+  document.querySelectorAll('.item-card').forEach(card => {
+    const viewBtn = card.querySelector('.view-ar-btn');
+    const name = card.querySelector('.item-name').textContent.trim();
+    const model = card.dataset.model;
+    viewBtn.addEventListener('click', () => {
+      document.getElementById('arViewer').setAttribute('src', model);
+      document.getElementById('arItemName').textContent = name;
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+  });
+
+  // ---------- CART STATE ----------
+  let cart = []; // {name, variant, price, qty}
+
+  function findCartItem(name, variant) {
+    return cart.find(i => i.name === name && i.variant === variant);
+  }
+
+  function addToCart(name, variant, price) {
+    const existing = findCartItem(name, variant);
+    if (existing) existing.qty += 1;
+    else cart.push({ name, variant, price, qty: 1 });
+    renderCart();
+  }
+
+  function changeQty(name, variant, delta) {
+    const item = findCartItem(name, variant);
+    if (!item) return;
+    item.qty += delta;
+    if (item.qty <= 0) cart = cart.filter(i => i !== item);
+    renderCart();
+  }
+
+  function cartTotal() {
+    return cart.reduce((sum, i) => sum + i.price * i.qty, 0);
+  }
+  function cartCount() {
+    return cart.reduce((sum, i) => sum + i.qty, 0);
+  }
+
+  function renderCart() {
+    const count = cartCount();
+    const total = cartTotal();
+
+    // cart bar
+    const bar = document.getElementById('cartBar');
+    document.getElementById('cartCount').textContent = count + (count === 1 ? ' item' : ' items');
+    document.getElementById('cartTotal').textContent = 'Rs ' + total.toLocaleString();
+    bar.classList.toggle('visible', count > 0);
+
+    // drawer
+    const body = document.getElementById('drawerBody');
+    if (cart.length === 0) {
+      body.innerHTML = '<div class="empty-cart">Your cart is empty.<br>Tap items above to add them.</div>';
+    } else {
+      body.innerHTML = cart.map(i => `
+        <div class="cart-line">
+          <div>
+            <div class="ci-name">${i.name}</div>
+            ${i.variant ? `<div class="ci-variant">${i.variant}</div>` : ''}
+          </div>
+          <div class="qty-stepper">
+            <button data-action="dec" data-name="${i.name}" data-variant="${i.variant}">−</button>
+            <span class="qty">${i.qty}</span>
+            <button data-action="inc" data-name="${i.name}" data-variant="${i.variant}">+</button>
+          </div>
+          <div class="ci-price">Rs ${(i.price * i.qty).toLocaleString()}</div>
+        </div>
+      `).join('');
+
+      body.querySelectorAll('.qty-stepper button').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const delta = btn.dataset.action === 'inc' ? 1 : -1;
+          changeQty(btn.dataset.name, btn.dataset.variant, delta);
+        });
+      });
+    }
+
+    document.getElementById('drawerTotal').textContent = 'Rs ' + total.toLocaleString();
+    document.getElementById('sendOrderBtn').disabled = cart.length === 0;
+
+    // sync price-btn "added" visual state (just flashes, not persistent per-variant tracking needed)
+  }
+
+  // price button clicks
+  document.querySelectorAll('.price-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const name = btn.dataset.name;
+      const variant = btn.dataset.variant;
+      const price = parseInt(btn.dataset.price, 10);
+      addToCart(name, variant, price);
+
+      // quick visual feedback
+      btn.classList.add('added');
+      setTimeout(() => btn.classList.remove('added'), 350);
+
+      // open cart bar attention
+      document.getElementById('cartBar').classList.add('visible');
+    });
+  });
+
+  // ---------- DRAWER OPEN/CLOSE ----------
+  const drawer = document.getElementById('cartDrawer');
+  const backdrop = document.getElementById('drawerBackdrop');
+
+  function openDrawer() {
+    drawer.classList.add('open');
+    backdrop.classList.add('open');
+  }
+  function closeDrawer() {
+    drawer.classList.remove('open');
+    backdrop.classList.remove('open');
+  }
+  document.getElementById('openCartBtn').addEventListener('click', openDrawer);
+  document.getElementById('closeDrawerBtn').addEventListener('click', closeDrawer);
+  backdrop.addEventListener('click', closeDrawer);
+
+  // ---------- SEND ORDER ----------
+  let activeOrderId = null;
+  let audioCtx = null;
+
+  // Created/resumed inside a real tap so the browser allows it to play sound
+  // later on its own when the listener fires (fixes "sometimes no buzz" bug).
+  function primeAudio() {
+    try {
+      if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      if (audioCtx.state === 'suspended') audioCtx.resume();
+    } catch (e) { console.warn('Could not prime audio', e); }
+  }
+
+  // Registers the service worker, asks for notification permission, and
+  // returns an FCM token so the kitchen can push a "ready" alert even if
+  // this tab is closed or the phone is locked. Never blocks order sending —
+  // if anything here fails or is declined, the order still goes through and
+  // the in-page buzz (above) still works as a fallback.
+  async function setupPushNotifications() {
+    try {
+      if (!('serviceWorker' in navigator) || !('PushManager' in window) || !firebase.messaging) {
+        return null; // unsupported browser (e.g. iOS Safari not added to Home Screen yet)
+      }
+      const registration = await navigator.serviceWorker.register('firebase-messaging-sw.js');
+      const permission = await Notification.requestPermission();
+      if (permission !== 'granted') return null;
+      const messaging = firebase.messaging();
+      const token = await messaging.getToken({
+        vapidKey: VAPID_KEY,
+        serviceWorkerRegistration: registration
+      });
+      return token || null;
+    } catch (err) {
+      console.warn('Push setup failed (in-page buzz will still work):', err);
+      return null;
+    }
+  }
+
+  document.getElementById('sendOrderBtn').addEventListener('click', async () => {
+    if (cart.length === 0) return;
+
+    primeAudio();
+
+    const order = {
+      table: tableNumber,
+      items: cart.map(i => ({ name: i.name, variant: i.variant, price: i.price, qty: i.qty })),
+      total: cartTotal(),
+      status: 'received'
+    };
+
+    const fcmToken = await setupPushNotifications();
+    if (fcmToken) order.fcmToken = fcmToken;
+
+    // 1. Push to Firebase for live dashboard + buzz tracking
+    submitOrder(order).then(orderId => {
+      activeOrderId = orderId;
+      document.getElementById('orderIdLabel').textContent = 'Order ID: ' + orderId;
+
+      // 2. Open WhatsApp with the order summary as a backup/confirmation channel
+      order.id = orderId;
+      const waLink = buildWhatsAppLink(BRIM_WHATSAPP, order);
+      window.open(waLink, '_blank');
+
+      // 3. Show live status overlay & start listening for "ready"
+      //    (this in-page buzz fires if the tab happens to be open and active;
+      //    the push notification below is what fires if it's locked/closed)
+      showStatusOverlay();
+      cart = [];
+      renderCart();
+      closeDrawer();
+
+      listenToOrder(orderId, (data) => {
+        if (!data) return;
+        updateStatusOverlay(data.status);
+      });
+    }).catch(err => {
+      alert('Could not send order. Please check your connection and try again.\n\n' + err.message);
+    });
+  });
+
+  function playBuzz() {
+    try {
+      if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      const o = audioCtx.createOscillator();
+      const g = audioCtx.createGain();
+      o.type = 'square';
+      o.frequency.value = 220;
+      g.gain.value = 0.15;
+      o.connect(g); g.connect(audioCtx.destination);
+      o.start();
+      // buzzer pulse pattern
+      let t = audioCtx.currentTime;
+      g.gain.setValueAtTime(0.18, t);
+      g.gain.setValueAtTime(0, t + 0.18);
+      g.gain.setValueAtTime(0.18, t + 0.36);
+      g.gain.setValueAtTime(0, t + 0.54);
+      g.gain.setValueAtTime(0.18, t + 0.72);
+      o.stop(t + 1.0);
+    } catch (e) { console.warn('Audio not available', e); }
+
+    if (navigator.vibrate) {
+      navigator.vibrate([400, 150, 400, 150, 400]);
+    }
+  }
+
+  // Foreground push messages (tab open but not the active/focused tab) —
+  // also trigger the buzz so it's not missed.
+  try {
+    if (firebase.messaging && firebase.messaging.isSupported && firebase.messaging.isSupported()) {
+      firebase.messaging().onMessage((payload) => {
+        playBuzz();
+      });
+    }
+  } catch (e) { /* messaging not supported on this browser, push still works via SW */ }
+
+  function showStatusOverlay() {
+    document.getElementById('statusOverlay').classList.add('open');
+    document.getElementById('statusOverlay').classList.remove('ready');
+    document.getElementById('pulseIcon').textContent = '👨‍🍳';
+    document.getElementById('statusTitle').textContent = 'Sent to the kitchen';
+    document.getElementById('statusText').innerHTML = `Your order for Table <b>${tableNumber}</b> has been received. We'll buzz your phone the moment it's ready.`;
+    setStep('received');
+  }
+
+  function setStep(status) {
+    const order = ['received', 'preparing', 'ready'];
+    const idx = order.indexOf(status);
+    order.forEach((s, i) => {
+      const el = document.getElementById('step-' + s);
+      el.classList.remove('active', 'done');
+      if (i < idx) el.classList.add('done');
+      else if (i === idx) el.classList.add('active');
+    });
+  }
+
+  function updateStatusOverlay(status) {
+    setStep(status);
+    if (status === 'preparing') {
+      document.getElementById('pulseIcon').textContent = '🔥';
+      document.getElementById('statusTitle').textContent = 'Cooking it up';
+      document.getElementById('statusText').innerHTML = `Your order for Table <b>${tableNumber}</b> is on the grill. Hang tight!`;
+    } else if (status === 'ready') {
+      document.getElementById('statusOverlay').classList.add('ready');
+      document.getElementById('pulseIcon').textContent = '✅';
+      document.getElementById('statusTitle').textContent = 'Order Ready!';
+      document.getElementById('statusText').innerHTML = `Your order for Table <b>${tableNumber}</b> is ready. A team member is bringing it over.`;
+      document.getElementById('statusOverlay').classList.add('open');
+      playBuzz();
+    }
+  }
+
+  document.getElementById('closeStatusBtn').addEventListener('click', () => {
+    document.getElementById('statusOverlay').classList.remove('open');
+  });
+
+  // init
+  renderCart();
+</script>
+
+</body>
+</html>
