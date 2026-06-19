@@ -850,6 +850,13 @@
     try {
       if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
       if (audioCtx.state === 'suspended') audioCtx.resume();
+      // Play a completely silent buffer — this permanently unlocks audio
+      // in Chrome even after popups, WhatsApp redirect, or tab switching.
+      const silentBuffer = audioCtx.createBuffer(1, 1, 22050);
+      const src = audioCtx.createBufferSource();
+      src.buffer = silentBuffer;
+      src.connect(audioCtx.destination);
+      src.start(0);
     } catch (e) { console.warn('Could not prime audio', e); }
   }
 
@@ -926,12 +933,13 @@
       navigator.vibrate([400, 150, 400, 150, 400, 150, 400]);
     }
 
-    // AUDIO — use AudioContext which was already unlocked on the "Send Order" tap
+    // AUDIO — resume context first, then play after a tiny delay
+    // to give Chrome time to actually resume before scheduling notes
     try {
       if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-      if (audioCtx.state === 'suspended') audioCtx.resume();
+      const playWhenReady = () => {
 
-      function beep(startTime, duration) {
+        function beep(startTime, duration) {
         const o = audioCtx.createOscillator();
         const g = audioCtx.createGain();
         o.type = 'square';
@@ -940,17 +948,23 @@
         g.gain.linearRampToValueAtTime(0.3, startTime + 0.01);
         g.gain.setValueAtTime(0.3, startTime + duration - 0.05);
         g.gain.linearRampToValueAtTime(0.0, startTime + duration);
-        o.connect(g);
-        g.connect(audioCtx.destination);
-        o.start(startTime);
-        o.stop(startTime + duration);
-      }
+          o.connect(g);
+          g.connect(audioCtx.destination);
+          o.start(startTime);
+          o.stop(startTime + duration);
+        }
 
-      const t = audioCtx.currentTime;
-      beep(t,        0.25);
-      beep(t + 0.35, 0.25);
-      beep(t + 0.70, 0.25);
-      beep(t + 1.05, 0.50);
+        const t = audioCtx.currentTime;
+        beep(t,        0.25);
+        beep(t + 0.35, 0.25);
+        beep(t + 0.70, 0.25);
+        beep(t + 1.05, 0.50);
+      };
+      if (audioCtx.state === 'suspended') {
+        audioCtx.resume().then(playWhenReady);
+      } else {
+        playWhenReady();
+      }
     } catch (e) { console.warn('Audio buzz failed:', e); }
   }
 
