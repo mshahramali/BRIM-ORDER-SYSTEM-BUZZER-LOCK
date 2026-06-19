@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Brim Burgers — Kitchen Dashboard</title>
+<style>
+:root{
+--char: #1c1410;
+--cream: #fbf3e7;
+--paper: #f4e9d8;
+--ember: #d9542f;
+--ember-dark: #b9401f;
+--smoke: #6b5d52;
+--line: #e4d4bd;
+--gold: #c9952c;
+--ok: #3f7d4f;
+--wait: #c9952c;
+--display: "Anton", "Arial Narrow", sans-serif;
+--body: "Source Sans 3", "Segoe UI", sans-serif;
+--mono: "JetBrains Mono", "Courier New", monospace;
+}
+*{ box-sizing:border-box; margin:0; padding:0; }
+html,body{ background:var(--char); color:var(--cream); font-family:var(--body); min-height:100vh; }
+header{ padding:20px 24px; display:flex; align-items:center; justify-content:space-between; border-bottom:1px solid #3a2c20; flex-wrap:wrap; gap:12px; }
+.brand{ font-family:var(--display); letter-spacing:1px; font-size:24px; text-transform:uppercase; display:flex; align-items:center; gap:8px; }
+.brand .flame{ color:var(--ember); }
+.brand .sub{ font-family:var(--mono); font-size:11px; letter-spacing:2px; color:var(--gold); text-transform:uppercase; margin-left:10px; border-left:1px solid #3a2c20; padding-left:10px; }
+.clock{ font-family:var(--mono); font-size:13px; color:#cdbfb2; }
+.filters{ display:flex; gap:8px; padding:16px 24px; flex-wrap:wrap; border-bottom:1px solid #3a2c20; }
+.filters button{ font-family:var(--body); font-weight:600; font-size:13px; padding:8px 16px; border-radius:999px; border:1px solid #3a2c20; background:#2a1f17; color:#cdbfb2; cursor:pointer; }
+.filters button.active{ background:var(--ember); color:var(--cream); border-color:var(--ember); }
+.filters .count{ font-family:var(--mono); font-size:11px; opacity:0.7; margin-left:4px; }
+main{ padding:20px 24px 60px; display:grid; grid-template-columns:repeat(auto-fill, minmax(280px, 1fr)); gap:16px; }
+.order-card{ background:var(--paper); color:var(--char); border-radius:14px; padding:16px; border-left:6px solid var(--wait); display:flex; flex-direction:column; gap:10px; animation:slidein .25s ease; }
+.order-card.preparing{ border-left-color:var(--ember); }
+.order-card.ready{ border-left-color:var(--ok); }
+.order-card.served{ opacity:0.55; }
+@keyframes slidein{ from{ opacity:0; transform:translateY(8px); } to{ opacity:1; transform:translateY(0); } }
+.order-head{ display:flex; justify-content:space-between; align-items:flex-start; }
+.order-table{ font-family:var(--display); font-size:24px; text-transform:uppercase; letter-spacing:1px; }
+.order-table .label{ font-size:11px; font-family:var(--mono); color:var(--smoke); display:block; letter-spacing:2px; }
+.order-time{ font-family:var(--mono); font-size:12px; color:var(--smoke); text-align:right; }
+.order-id{ font-family:var(--mono); font-size:10px; color:var(--smoke); opacity:0.7; }
+.order-items{ font-size:14px; line-height:1.6; }
+.order-items .it{ display:flex; justify-content:space-between; gap:8px; }
+.order-items .it .qty{ font-family:var(--mono); font-weight:700; color:var(--ember-dark); min-width:28px; }
+.order-items .variant{ font-size:12px; color:var(--smoke); }
+.order-total{ font-family:var(--mono); font-weight:700; font-size:15px; border-top:1px dashed var(--line); padding-top:8px; display:flex; justify-content:space-between; }
+.status-row{ display:flex; gap:8px; margin-top:4px; }
+.status-row button{ flex:1; font-family:var(--body); font-weight:700; font-size:12px; text-transform:uppercase; letter-spacing:0.5px; padding:10px; border:none; border-radius:8px; cursor:pointer; transition:opacity .15s ease; }
+.status-row button:disabled{ opacity:0.35; cursor:default; }
+.btn-prep{ background:var(--ember); color:var(--cream); }
+.btn-ready{ background:var(--ok); color:var(--cream); }
+.btn-served{ background:var(--char); color:var(--cream); }
+.status-badge{ font-family:var(--mono); font-size:10px; text-transform:uppercase; letter-spacing:1.5px; padding:4px 10px; border-radius:999px; background:var(--wait); color:#3a2c00; }
+.order-card.preparing .status-badge{ background:var(--ember); color:#fff; }
+.order-card.ready .status-badge{ background:var(--ok); color:#fff; }
+.order-card.served .status-badge{ background:var(--char); color:#cdbfb2; }
+.empty-state{ grid-column:1/-1; text-align:center; padding:80px 20px; color:#6b5d52; }
+.empty-state .icon{ font-size:48px; margin-bottom:12px; }
+.empty-state h2{ font-family:var(--display); text-transform:uppercase; letter-spacing:1px; color:#cdbfb2; margin-bottom:6px; }
+</style>
+</head>
+<body>
+<header>
+  <div class="brand"><span class="flame">✦</span> BRIM BURGERS <span class="sub">Kitchen Dashboard</span></div>
+  <div class="clock" id="clock"></div>
+</header>
+<div class="filters">
+  <button class="active" data-filter="all">All <span class="count" id="count-all">(0)</span></button>
+  <button data-filter="received">New <span class="count" id="count-received">(0)</span></button>
+  <button data-filter="preparing">Preparing <span class="count" id="count-preparing">(0)</span></button>
+  <button data-filter="ready">Ready <span class="count" id="count-ready">(0)</span></button>
+  <button data-filter="served">Served <span class="count" id="count-served">(0)</span></button>
+</div>
+<main id="ordersGrid">
+  <div class="empty-state">
+    <div class="icon">🍔</div>
+    <h2>No orders yet</h2>
+    <p>New orders from any table will appear here in real time.</p>
+  </div>
+</main>
+
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script src="firebase-config.js"></script>
+<script>
+function tick() { document.getElementById('clock').textContent = new Date().toLocaleTimeString(); }
+tick(); setInterval(tick, 1000);
+
+let allOrders = [];
+let activeFilter = 'all';
+
+document.querySelectorAll('.filters button').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.filters button').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    activeFilter = btn.dataset.filter;
+    render();
+  });
+});
+
+function timeAgo(ts) {
+  const diff = Math.floor((Date.now() - ts) / 1000);
+  if (diff < 60) return diff + 's ago';
+  if (diff < 3600) return Math.floor(diff / 60) + 'm ago';
+  return Math.floor(diff / 3600) + 'h ago';
+}
+
+function render() {
+  const grid = document.getElementById('ordersGrid');
+  const counts = { all: allOrders.length, received: 0, preparing: 0, ready: 0, served: 0 };
+  allOrders.forEach(o => { if (counts[o.status] !== undefined) counts[o.status]++; });
+  Object.keys(counts).forEach(k => { const el = document.getElementById('count-' + k); if (el) el.textContent = '(' + counts[k] + ')'; });
+
+  const filtered = activeFilter === 'all' ? allOrders : allOrders.filter(o => o.status === activeFilter);
+
+  if (filtered.length === 0) {
+    grid.innerHTML = `<div class="empty-state"><div class="icon">🍔</div><h2>No orders ${activeFilter === 'all' ? 'yet' : 'in this view'}</h2><p>New orders from any table will appear here in real time.</p></div>`;
+    return;
+  }
+
+  grid.innerHTML = filtered.map(o => {
+    const itemsHtml = o.items.map(it => `<div class="it"><span><span class="qty">${it.qty}x</span> ${it.name}${it.variant ? `<span class="variant"> (${it.variant})</span>` : ''}</span><span>Rs ${(it.price * it.qty).toLocaleString()}</span></div>`).join('');
+    const statusLabel = { received:'New', preparing:'Preparing', ready:'Ready', served:'Served' }[o.status] || o.status;
+    return `<div class="order-card ${o.status}" data-id="${o.id}">
+      <div class="order-head">
+        <div class="order-table"><span class="label">Table</span>${o.table}</div>
+        <div><div class="status-badge">${statusLabel}</div><div class="order-time">${timeAgo(o.createdAt)}</div></div>
+      </div>
+      <div class="order-items">${itemsHtml}</div>
+      <div class="order-total"><span>Total</span><span>Rs ${o.total.toLocaleString()}</span></div>
+      <div class="status-row">
+        <button class="btn-prep" data-action="preparing" ${o.status !== 'received' ? 'disabled' : ''}>Start</button>
+        <button class="btn-ready" data-action="ready" ${o.status !== 'preparing' ? 'disabled' : ''}>Ready</button>
+        <button class="btn-served" data-action="served" ${o.status !== 'ready' ? 'disabled' : ''}>Served</button>
+      </div>
+      <div class="order-id">${o.id}</div>
+    </div>`;
+  }).join('');
+
+  grid.querySelectorAll('.status-row button').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const id = btn.closest('.order-card').dataset.id;
+      updateOrderStatus(id, btn.dataset.action);
+    });
+  });
+}
+
+listenToAllOrders((orders) => { allOrders = orders; render(); });
+</script>
+</body>
+</html>
