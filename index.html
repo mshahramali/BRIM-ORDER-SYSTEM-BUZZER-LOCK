@@ -921,28 +921,37 @@
   });
 
   function playBuzz() {
+    // VIBRATE first — works independently of audio policy
+    if (navigator.vibrate) {
+      navigator.vibrate([400, 150, 400, 150, 400, 150, 400]);
+    }
+
+    // AUDIO — use AudioContext which was already unlocked on the "Send Order" tap
     try {
       if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-      const o = audioCtx.createOscillator();
-      const g = audioCtx.createGain();
-      o.type = 'square';
-      o.frequency.value = 220;
-      g.gain.value = 0.15;
-      o.connect(g); g.connect(audioCtx.destination);
-      o.start();
-      // buzzer pulse pattern
-      let t = audioCtx.currentTime;
-      g.gain.setValueAtTime(0.18, t);
-      g.gain.setValueAtTime(0, t + 0.18);
-      g.gain.setValueAtTime(0.18, t + 0.36);
-      g.gain.setValueAtTime(0, t + 0.54);
-      g.gain.setValueAtTime(0.18, t + 0.72);
-      o.stop(t + 1.0);
-    } catch (e) { console.warn('Audio not available', e); }
+      if (audioCtx.state === 'suspended') audioCtx.resume();
 
-    if (navigator.vibrate) {
-      navigator.vibrate([400, 150, 400, 150, 400]);
-    }
+      function beep(startTime, duration) {
+        const o = audioCtx.createOscillator();
+        const g = audioCtx.createGain();
+        o.type = 'square';
+        o.frequency.value = 880;
+        g.gain.setValueAtTime(0.0, startTime);
+        g.gain.linearRampToValueAtTime(0.3, startTime + 0.01);
+        g.gain.setValueAtTime(0.3, startTime + duration - 0.05);
+        g.gain.linearRampToValueAtTime(0.0, startTime + duration);
+        o.connect(g);
+        g.connect(audioCtx.destination);
+        o.start(startTime);
+        o.stop(startTime + duration);
+      }
+
+      const t = audioCtx.currentTime;
+      beep(t,        0.25);
+      beep(t + 0.35, 0.25);
+      beep(t + 0.70, 0.25);
+      beep(t + 1.05, 0.50);
+    } catch (e) { console.warn('Audio buzz failed:', e); }
   }
 
   // Foreground push messages (tab open but not the active/focused tab) —
