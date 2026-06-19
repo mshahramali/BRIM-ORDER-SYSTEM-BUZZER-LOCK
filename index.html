@@ -844,8 +844,9 @@
   let activeOrderId = null;
   let audioCtx = null;
 
-  // Created/resumed inside a real tap so the browser allows it to play sound
-  // later on its own when the listener fires (fixes "sometimes no buzz" bug).
+  // Unlock audio on the very first tap anywhere on the page.
+  // This is the most reliable way to satisfy Chrome's autoplay policy
+  // before any popups or redirects can kill the AudioContext.
   function primeAudio() {
     try {
       if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -859,6 +860,10 @@
       src.start(0);
     } catch (e) { console.warn('Could not prime audio', e); }
   }
+
+  // Unlock audio on first interaction anywhere — fires before Send Order tap
+  document.addEventListener('touchstart', primeAudio, { once: true, passive: true });
+  document.addEventListener('click', primeAudio, { once: true });
 
   // Registers the service worker, asks for notification permission, and
   // returns an FCM token so the kitchen can push a "ready" alert even if
@@ -905,12 +910,7 @@
       activeOrderId = orderId;
       document.getElementById('orderIdLabel').textContent = 'Order ID: ' + orderId;
 
-      // 2. Open WhatsApp with the order summary as a backup/confirmation channel
-      order.id = orderId;
-      const waLink = buildWhatsAppLink(BRIM_WHATSAPP, order);
-      window.open(waLink, '_blank');
-
-      // 3. Show live status overlay & start listening for "ready"
+      // 2. Show live status overlay & start listening for "ready"
       //    (this in-page buzz fires if the tab happens to be open and active;
       //    the push notification below is what fires if it's locked/closed)
       showStatusOverlay();
